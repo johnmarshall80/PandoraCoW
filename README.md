@@ -25,7 +25,7 @@ source submitBatch.sh
 The script will submit your jobs one by one (without exceeding `MAX_SIMULTANEOUS_JOBS`) until all jobs are queued.
 Then the script will automatically monitor the status of your jobs. When it finishes, all of your jobs should be done!
 
-You can find the output of your jobs in the `work` directory. A new subdirectory is made for each job containing the logs, errors, and any Pandora produced.
+You can find the output of your jobs in the `work` directory. A new subdirectory is made for each job containing the logs, errors, and any files that Pandora produced.
 
 ## Things to modify
 In the `generic` directory, there are two files you can modify.
@@ -34,5 +34,5 @@ In the `generic` directory, there are two files you can modify.
 which are replaced by `submitBatch.sh` according to the settings you specify. The `arguments` are passed to `pandoraJob`, which actually
 run pandora.
 
-`pandoraJob` is a simple executable bash file that first runs the setup script, and then execute the Pandora binary with the specified settings.
-You can modify this if you any custom behaviour, e.g. copying after pandora runs.
+`pandoraJob` is a simple executable bash file that first runs the setup script, and then executes the Pandora binary with the specified settings.
+You can modify this if you require any custom behaviour, e.g. copying/moving files after Pandora finishes.
