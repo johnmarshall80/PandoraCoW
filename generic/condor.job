@@ -1,0 +1,17 @@
+executable              = EXECUTABLE
+initial_dir             = INITIAL_DIR
+notification            = never
+Requirements            = (OSTYPE == "SLC6")
+request_memory          = 2048
+Rank                    = memory
+output                  = LOG_DIR/job_JOB_INDEX.out
+error                   = LOG_DIR/job_JOB_INDEX.err
+log                     = LOG_DIR/job_JOB_INDEX.log
+environment             = CONDOR_JOB=true
+Universe                = vanilla
+getenv                  = false
+copy_to_spool           = true
+should_transfer_files   = yes
+when_to_transfer_output = on_exit_or_evict
+arguments               = SETUP_SCRIPT PANDORA_BIN RECO_OPTION SETTINGS_FILE GEOMETRY_FILE FILE_LIST 
+queue 1
