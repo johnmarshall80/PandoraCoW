@@ -13,10 +13,10 @@ SETUP_SCRIPT=$MY_TEST_AREA/setup.sh
 RECO_OPTION=AllHitsNu
 SETTINGS_FILE=$MY_TEST_AREA/LArReco/settings/PandoraSettings_Master_MicroBooNE.xml
 GEOMETRY_FILE=/storage/dune/uB_mcc9-0_samples/Pandora_Geometry_MCC9.0.xml
-EVENTS=/storage/dune/uB_mcc9-0_samples/prodgenie_bnb_nu_only/*.pndr
+EVENTS=/storage/dune/uB_mcc9-0_samples/prodgenie_bnb_nu_only_v12/*.pndr
 
 FILES_PER_JOB=5
-NUM_JOBS=200
+NUM_JOBS=250
 MAX_SIMULTANEOUS_JOBS=20
 
 # ==========================================================================================================================================
@@ -116,7 +116,7 @@ while [ $NUM_JOBS_LEFT -gt 0 ]; do
         JOB_INDEX=`echo ${NEXT_JOB} | grep -oE 'job[0-9]+' | grep -oE '[0-9]+'`
         cd ${WORKING_DIR}/job${JOB_INDEX}
 
-        sbatch $NEXT_JOB #> /dev/null 
+        sbatch $NEXT_JOB > /dev/null
         cd ${WORKING_DIR}
     fi
     NUM_JOBS_LEFT=`cat $JOBS_LIST | wc -l`
