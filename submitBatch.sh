@@ -4,18 +4,20 @@
 # Editable settings
 # ==========================================================================================================================================
 
-PANDORA_CONDOR_DIR=.
+USERID=phsnpc
+MY_TEST_AREA=/storage/epp2/phsnpc/github/
+PANDORA_COW_DIR=/storage/epp2/phsnpc/cow/PandoraCoW/
 
 PANDORA_BIN=$MY_TEST_AREA/LArReco/bin/PandoraInterface
 SETUP_SCRIPT=$MY_TEST_AREA/setup.sh
-RECO_OPTION=Full
+RECO_OPTION=AllHitsNu
 SETTINGS_FILE=$MY_TEST_AREA/LArReco/settings/PandoraSettings_Master_MicroBooNE.xml
-EVENTS=/r05/uboone/mcc8-4_samples/BNB_mu_cosmic/*
-GEOMETRY_FILE=$MY_TEST_AREA/LArReco/geometry/PandoraGeometry_MicroBooNE.xml
+GEOMETRY_FILE=/storage/dune/uB_mcc9-0_samples/Pandora_Geometry_MCC9.0.xml
+EVENTS=/storage/dune/uB_mcc9-0_samples/prodgenie_bnb_nu_only/*.pndr
 
-FILES_PER_JOB=1
-NUM_JOBS=100
-MAX_SIMULTANEOUS_JOBS=100
+FILES_PER_JOB=5
+NUM_JOBS=200
+MAX_SIMULTANEOUS_JOBS=20
 
 # ==========================================================================================================================================
 # ==========================================================================================================================================
@@ -25,60 +27,58 @@ PANDORA_BIN=`readlink -f $PANDORA_BIN`
 SETUP_SCRIPT=`readlink -f $SETUP_SCRIPT`                                                                                                       
 SETTINGS_FILE=`readlink -f $SETTINGS_FILE`                                                                                                     
 GEOMETRY_FILE=`readlink -f $GEOMETRY_FILE`                                                                                                     
-PANDORA_CONDOR_DIR=`readlink -f $PANDORA_CONDOR_DIR`                                                                                           
+PANDORA_COW_DIR=`readlink -f $PANDORA_COW_DIR`                                                                                           
 
 # ==========================================================================================================================================
 
 # Derived paths
-GENERIC_CONDOR_JOB=$PANDORA_CONDOR_DIR/generic/condor.job
-WORKING_DIR=$PANDORA_CONDOR_DIR/work
-EXECUTABLE=$PANDORA_CONDOR_DIR/generic/pandoraJob
+WORKING_DIR=$PANDORA_COW_DIR/work
+GENERIC_JOB=$PANDORA_COW_DIR/generic/pandoraJob
 JOBS_LIST=$WORKING_DIR/jobsList
-JOB_NAME=`basename $EXECUTABLE`
+JOB_NAME=`basename $GENERIC_JOB`
 
 # ==========================================================================================================================================
 
 # Clean up the working directory and move to it
-if [ ! -d $WORKING_DIR ]; then
-    echo "Working directory doesn't exist! : ${WORKING_DIR}"
-    return
+if [ -d $WORKING_DIR ]; then
+    echo "Working directory already exists! : ${WORKING_DIR}"
+    exit 1
 fi
 
-rm -rf $WORKING_DIR/*
+mkdir -p $WORKING_DIR
 cd $WORKING_DIR
 
 # ==========================================================================================================================================
 
 # Make the job files
-FILE_INDEX=0
 JOB_INDEX=0
-FILE_LIST=""
-for FILE in $EVENTS; do
+FILE_INDEX=0
+FILE_PER_JOB_INDEX=0
 
+FILE_LIST=""
+NUM_FILES=`ls ${EVENTS} | wc -l`
+
+for FILE in $EVENTS; do
     # Append this file to the current list
-    if [ $FILE_INDEX -eq 0 ]; then
+    if [ $FILE_PER_JOB_INDEX -eq 0 ]; then
         FILE_LIST=$FILE
     else
         FILE_LIST=$FILE_LIST:$FILE
     fi
 
     FILE_INDEX=$(( $FILE_INDEX + 1 ))
+    FILE_PER_JOB_INDEX=$(( $FILE_PER_JOB_INDEX + 1 ))
 
     # Make new job file
-    if [ $FILE_INDEX -eq $FILES_PER_JOB ]; then
+    if [ $FILE_PER_JOB_INDEX -eq $FILES_PER_JOB ] || [ $FILE_INDEX -eq $NUM_FILES ]; then
 
         JOB_DIR=${WORKING_DIR}/job${JOB_INDEX}
         mkdir $JOB_DIR
-        JOB_FILE=${JOB_DIR}/condor.job
+        JOB_FILE=${JOB_DIR}/pandoraJob
         echo $JOB_FILE >> $JOBS_LIST
 
-        cp $GENERIC_CONDOR_JOB $JOB_FILE
+        cp $GENERIC_JOB $JOB_FILE
     
-        sed -i "s|EXECUTABLE|${EXECUTABLE}|g" $JOB_FILE
-        sed -i "s|INITIAL_DIR|${JOB_DIR}|g" $JOB_FILE
-        sed -i "s|LOG_DIR|${JOB_DIR}|g" $JOB_FILE
-        sed -i "s|JOB_INDEX|${JOB_INDEX}|g" $JOB_FILE
-
         sed -i "s|SETUP_SCRIPT|${SETUP_SCRIPT}|g" $JOB_FILE
         sed -i "s|PANDORA_BIN|${PANDORA_BIN}|g" $JOB_FILE
         sed -i "s|RECO_OPTION|${RECO_OPTION}|g" $JOB_FILE
@@ -87,7 +87,7 @@ for FILE in $EVENTS; do
         sed -i "s|FILE_LIST|${FILE_LIST}|g" $JOB_FILE
 
         JOB_INDEX=$(( $JOB_INDEX + 1 ))
-        FILE_INDEX=0
+        FILE_PER_JOB_INDEX=0
 
         if [ $JOB_INDEX -eq $NUM_JOBS ]; then
             break
@@ -102,7 +102,8 @@ echo; echo
 NUM_JOBS_LEFT=$NUM_JOBS
 while [ $NUM_JOBS_LEFT -gt 0 ]; do
 
-    NUM_QUEUED_JOBS=`condor_q -nobatch | grep $JOB_NAME | wc -l`
+    NUM_QUEUED_JOBS=`squeue -u $USERID -n $JOB_NAME | wc -l`
+    NUM_QUEUED_JOBS=$(( $NUM_QUEUED_JOBS - 1 ))
 
     if [ $NUM_QUEUED_JOBS -lt $MAX_SIMULTANEOUS_JOBS ]; then
 
@@ -112,13 +113,17 @@ while [ $NUM_JOBS_LEFT -gt 0 ]; do
         cat tmp > $JOBS_LIST
         rm -rf tmp
 
-        condor_submit $NEXT_JOB > /dev/null 
+        JOB_INDEX=`echo ${NEXT_JOB} | grep -oE 'job[0-9]+' | grep -oE '[0-9]+'`
+        cd ${WORKING_DIR}/job${JOB_INDEX}
+
+        sbatch $NEXT_JOB #> /dev/null 
+        cd ${WORKING_DIR}
     fi
     NUM_JOBS_LEFT=`cat $JOBS_LIST | wc -l`
     
     echo -en "\e[2A"
-    echo "Jobs queued    : ${NUM_QUEUED_JOBS}"
-    echo "Jobs to submit : ${NUM_JOBS_LEFT}"
+    echo "Jobs queued    : ${NUM_QUEUED_JOBS} "
+    echo "Jobs to submit : ${NUM_JOBS_LEFT}   "
 
     sleep 0.5
 done
@@ -128,11 +133,11 @@ done
 # Monitor remaining jobs
 echo -en "\e[2A"
 echo "All jobs submitted!"
-echo "                               "; echo
 while [ $NUM_QUEUED_JOBS -gt 0 ]; do
-    echo -en "\e[1A"
-    condor_q | tail -n 1
-    NUM_QUEUED_JOBS=`condor_q -nobatch | grep $JOB_NAME | wc -l`
+    # TODO Some print out about number of running jobs
+    # echo -en "\e[1A"
+    NUM_QUEUED_JOBS=`squeue -u $USERID -n $JOB_NAME | wc -l`
+    NUM_QUEUED_JOBS=$(( $NUM_QUEUED_JOBS - 1 ))
     sleep 0.5
 done
 
