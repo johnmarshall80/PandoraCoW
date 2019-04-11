@@ -12,7 +12,7 @@ PANDORA_BIN=$MY_TEST_AREA/LArReco/bin/PandoraInterface
 SETUP_SCRIPT=$MY_TEST_AREA/setup.sh
 RECO_OPTION=AllHitsNu
 SETTINGS_FILE=$MY_TEST_AREA/LArReco/settings/PandoraSettings_Master_MicroBooNE.xml
-GEOMETRY_FILE=/storage/dune/uB_mcc9-0_samples/Pandora_Geometry_MCC9.0.xml
+GEOMETRY_FILE=/storage/dune/uB_mcc9-0_samples/Pandora_Geometry_MCC9.0_v12.xml
 EVENTS=/storage/dune/uB_mcc9-0_samples/prodgenie_bnb_nu_only_v12/*.pndr
 
 FILES_PER_JOB=5
@@ -141,4 +141,4 @@ while [ $NUM_QUEUED_JOBS -gt 0 ]; do
     sleep 0.5
 done
 
-cd -
+cd - > /dev/null
