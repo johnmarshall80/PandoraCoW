@@ -2,6 +2,7 @@
 #SBATCH --ntasks=1
 #SBATCH --mem-per-cpu=2012
 #SBATCH --time=02:00:00
+#SBATCH --partition epp
 
 source SETUP_SCRIPT
 PANDORA_BIN -r RECO_OPTION -i SETTINGS_FILE -g GEOMETRY_FILE -e FILE_LIST -N
